@@ -1,0 +1,41 @@
+{
+  "name": "aios",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Operating System for Businesses — Multi-Agent SaaS Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "@scarf/scarf"
+    ]
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "db:generate": "pnpm --filter @aios/database generate",
+    "db:push": "pnpm --filter @aios/database push",
+    "db:migrate": "pnpm --filter @aios/database migrate",
+    "db:studio": "pnpm --filter @aios/database studio",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "prettier": "^3.5.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  },
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  }
+}
