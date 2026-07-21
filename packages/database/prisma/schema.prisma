@@ -1,3 +1,7 @@
+// NexusAI Platform — PostgreSQL Schema
+// Single source of truth: packages/database/prisma/schema.prisma
+// Docs: 03-database/
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,7 +11,244 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Infrastructure bootstrap model — not product business logic.
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum WorldStatus {
+  DRAFT
+  RUNNING
+  PAUSED
+  ARCHIVED
+}
+
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AiTier {
+  ACTIVE
+  NEARBY
+  BACKGROUND
+}
+
+enum LifeState {
+  SLEEPING
+  EATING
+  WORKING
+  SOCIALIZING
+  TRAVELING
+  LEISURE
+  IN_CRISIS
+  DECEASED
+}
+
+enum BuildingType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  GOVERNMENT
+  EDUCATION
+  HEALTHCARE
+  AGRICULTURAL
+  INFRASTRUCTURE
+}
+
+enum VehicleType {
+  CART
+  CAR
+  TRUCK
+  BOAT
+  TRAIN
+  AIRCRAFT
+}
+
+enum RoadType {
+  DIRT
+  PAVED
+  HIGHWAY
+  RAIL
+}
+
+enum RelationshipType {
+  FAMILY
+  FRIEND
+  RIVAL
+  ROMANTIC
+  COLLEAGUE
+  ACQUAINTANCE
+}
+
+enum ScheduleActivity {
+  SLEEP
+  WORK
+  EAT
+  SOCIALIZE
+  LEISURE
+  TRAVEL
+  EDUCATION
+  HEALTHCARE
+}
+
+enum JobStatus {
+  OPEN
+  FILLED
+  CLOSED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  TERMINATED
+  ON_LEAVE
+}
+
+enum EntityType {
+  CITIZEN
+  BUSINESS
+  COMPANY
+  GOVERNMENT
+  WORLD
+  CITY
+}
+
+enum TransactionType {
+  WAGE
+  PURCHASE
+  SALE
+  TAX
+  TRANSFER
+  FINE
+  SUBSIDY
+}
+
+enum TaxType {
+  INCOME
+  SALES
+  PROPERTY
+  TRADE
+  CORPORATE
+}
+
+enum CrimeType {
+  THEFT
+  ASSAULT
+  FRAUD
+  VANDALISM
+  TRAFFIC
+  OTHER
+}
+
+enum CrimeStatus {
+  REPORTED
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum WeatherCondition {
+  CLEAR
+  CLOUDY
+  RAIN
+  STORM
+  SNOW
+  FOG
+  DROUGHT
+  HEATWAVE
+}
+
+enum WorldEventType {
+  DISASTER
+  BOOM
+  POLICY
+  MIGRATION
+  DISCOVERY
+  ADMIN_INJECTED
+}
+
+enum MemoryType {
+  SHORT_TERM
+  LONG_TERM
+  EPISODIC
+  SEMANTIC
+}
+
+enum KnowledgeSource {
+  UPLOAD
+  GENERATED
+  CURATED
+  SIMULATION
+}
+
+enum ProduceStatus {
+  PLANNED
+  GROWING
+  HARVESTED
+  FAILED
+}
+
+// =============================================================================
+// PLATFORM (Shared — Product A + B)
+// =============================================================================
+
+model Organization {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  users     User[]
+  agents    Agent[]
+  worlds    World[]
+  knowledge KnowledgeEntry[]
+
+  @@index([deletedAt])
+  @@map("organizations")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  organizationId String    @map("organization_id")
+  email          String    @unique
+  passwordHash   String    @map("password_hash")
+  displayName    String?   @map("display_name")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  worldsOwned  World[]      @relation("WorldOwner")
+  worldEvents  WorldEvent[] @relation("EventInjector")
+
+  @@index([organizationId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Agent {
+  id             String      @id @default(uuid())
+  organizationId String      @map("organization_id")
+  name           String
+  role           String
+  model          String      @default("gpt-4o-mini")
+  status         AgentStatus @default(ACTIVE)
+  systemPrompt   String?     @map("system_prompt") @db.Text
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  deletedAt      DateTime?   @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  citizen      Citizen?
+  memories     AgentMemory[]
+
+  @@index([organizationId, status])
+  @@index([deletedAt])
+  @@map("agents")
+}
+
 model SystemMeta {
   id        String   @id @default(uuid())
   key       String   @unique
@@ -16,4 +257,778 @@ model SystemMeta {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("system_meta")
+}
+
+// =============================================================================
+// WORLD (Simulation root)
+// =============================================================================
+
+model World {
+  id             String      @id @default(uuid())
+  organizationId String      @map("organization_id")
+  ownerId        String      @map("owner_id")
+  seed           String
+  name           String
+  era            String      @default("medieval")
+  status         WorldStatus @default(DRAFT)
+  currentTick    Int         @default(0) @map("current_tick")
+  config         Json        @default("{}")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  deletedAt      DateTime?   @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  owner        User         @relation("WorldOwner", fields: [ownerId], references: [id])
+
+  cities            City[]
+  buildings         Building[]
+  roads             Road[]
+  vehicles          Vehicle[]
+  citizens          Citizen[]
+  companies         Company[]
+  businesses        Business[]
+  jobs              Job[]
+  itemDefinitions   ItemDefinition[]
+  produceRecords    ProduceRecord[]
+  economySnapshots  EconomySnapshot[]
+  transactions      Transaction[]
+  governments       Government[]
+  taxRates          TaxRate[]
+  taxRecords        TaxRecord[]
+  weatherSnapshots  WeatherSnapshot[]
+  weatherEvents     WeatherEvent[]
+  crimeRecords      CrimeRecord[]
+  worldEvents       WorldEvent[]
+  simulationEvents  SimulationEvent[]
+  snapshots         WorldSnapshot[]
+
+  @@index([organizationId, status])
+  @@index([ownerId])
+  @@index([deletedAt])
+  @@map("worlds")
+}
+
+model WorldSnapshot {
+  id           String   @id @default(uuid())
+  worldId      String   @map("world_id")
+  tick         Int
+  label        String?
+  stateHash    String   @map("state_hash")
+  payload      Json
+  parentId     String?  @map("parent_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  world  World          @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  parent WorldSnapshot? @relation("SnapshotChain", fields: [parentId], references: [id])
+
+  children WorldSnapshot[] @relation("SnapshotChain")
+
+  @@unique([worldId, tick, stateHash])
+  @@index([worldId, tick])
+  @@map("world_snapshots")
+}
+
+// =============================================================================
+// GEOGRAPHY
+// =============================================================================
+
+model City {
+  id        String    @id @default(uuid())
+  worldId   String    @map("world_id")
+  name      String
+  latitude  Float
+  longitude Float
+  population Int      @default(0)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  world      World       @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  buildings  Building[]
+  businesses Business[]
+  citizens   Citizen[]   @relation("CitizenCity")
+  produce    ProduceRecord[]
+  roadsFrom  Road[]      @relation("RoadFromCity")
+  roadsTo    Road[]      @relation("RoadToCity")
+  vehicles   Vehicle[]   @relation("VehicleCity")
+  governments Government[]
+
+  @@unique([worldId, name])
+  @@index([worldId, deletedAt])
+  @@map("cities")
+}
+
+model Building {
+  id               String       @id @default(uuid())
+  worldId          String       @map("world_id")
+  cityId           String       @map("city_id")
+  name             String
+  type             BuildingType
+  capacity         Int          @default(1)
+  latitude         Float?
+  longitude        Float?
+  ownerCitizenId   String?      @map("owner_citizen_id")
+  ownerBusinessId  String?      @map("owner_business_id")
+  metadata         Json         @default("{}")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  deletedAt        DateTime?    @map("deleted_at")
+
+  world         World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  city          City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  ownerCitizen  Citizen?  @relation("BuildingOwnerCitizen", fields: [ownerCitizenId], references: [id])
+  ownerBusiness Business? @relation("BuildingOwnerBusiness", fields: [ownerBusinessId], references: [id])
+  homeCitizens  Citizen[] @relation("CitizenHome")
+  businesses    Business[] @relation("BusinessBuilding")
+
+  @@index([worldId, cityId])
+  @@index([cityId, type])
+  @@index([ownerCitizenId])
+  @@index([ownerBusinessId])
+  @@index([deletedAt])
+  @@map("buildings")
+}
+
+model Road {
+  id          String   @id @default(uuid())
+  worldId     String   @map("world_id")
+  fromCityId  String   @map("from_city_id")
+  toCityId    String   @map("to_city_id")
+  name        String?
+  type        RoadType @default(DIRT)
+  distanceKm  Float    @map("distance_km")
+  condition   Float    @default(1.0)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  world    World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  fromCity City  @relation("RoadFromCity", fields: [fromCityId], references: [id], onDelete: Cascade)
+  toCity   City  @relation("RoadToCity", fields: [toCityId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, fromCityId, toCityId])
+  @@index([worldId, deletedAt])
+  @@map("roads")
+}
+
+model Vehicle {
+  id              String      @id @default(uuid())
+  worldId         String      @map("world_id")
+  type            VehicleType
+  name            String?
+  ownerCitizenId  String?     @map("owner_citizen_id")
+  ownerBusinessId String?     @map("owner_business_id")
+  currentCityId   String?     @map("current_city_id")
+  metadata        Json        @default("{}")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
+
+  world         World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  ownerCitizen  Citizen?  @relation(fields: [ownerCitizenId], references: [id])
+  ownerBusiness Business? @relation(fields: [ownerBusinessId], references: [id])
+  currentCity   City?     @relation("VehicleCity", fields: [currentCityId], references: [id])
+
+  @@index([worldId, type])
+  @@index([ownerCitizenId])
+  @@index([ownerBusinessId])
+  @@index([currentCityId])
+  @@index([deletedAt])
+  @@map("vehicles")
+}
+
+// =============================================================================
+// POPULATION — Citizens, Relationships, Schedules
+// =============================================================================
+
+model Citizen {
+  id              String    @id @default(uuid())
+  worldId         String    @map("world_id")
+  agentId         String    @unique @map("agent_id")
+  name            String
+  age             Int       @default(18)
+  gender          String?
+  lifeState       LifeState @default(LEISURE) @map("life_state")
+  aiTier          AiTier    @default(BACKGROUND) @map("ai_tier")
+  personality     Json      @default("{}")
+  health          Json      @default("{}")
+  wealth          Json      @default("{}")
+  needs           Json      @default("{}")
+  locationLat     Float?    @map("location_lat")
+  locationLng     Float?    @map("location_lng")
+  currentCityId   String?   @map("current_city_id")
+  homeBuildingId  String?   @map("home_building_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  world        World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  agent        Agent     @relation(fields: [agentId], references: [id])
+  currentCity  City?     @relation("CitizenCity", fields: [currentCityId], references: [id])
+  homeBuilding Building? @relation("CitizenHome", fields: [homeBuildingId], references: [id])
+
+  goals            CitizenGoal[]
+  skills           CitizenSkill[]
+  relationshipsAsA CitizenRelationship[] @relation("RelationshipCitizenA")
+  relationshipsAsB CitizenRelationship[] @relation("RelationshipCitizenB")
+  schedules        CitizenSchedule[]
+  inventory        CitizenInventory[]
+  jobAssignments   JobAssignment[]
+  ownedBuildings   Building[]            @relation("BuildingOwnerCitizen")
+  ownedVehicles    Vehicle[]
+  crimesCommitted  CrimeRecord[]         @relation("CrimePerpetrator")
+  crimesVictim     CrimeRecord[]         @relation("CrimeVictim")
+
+  @@index([worldId, aiTier])
+  @@index([worldId, lifeState])
+  @@index([currentCityId])
+  @@index([deletedAt])
+  @@map("citizens")
+}
+
+model CitizenGoal {
+  id          String    @id @default(uuid())
+  citizenId   String    @map("citizen_id")
+  goalType    String    @map("goal_type")
+  description String?
+  priority    Float     @default(0.5)
+  targetValue Float?    @map("target_value")
+  isActive    Boolean   @default(true) @map("is_active")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@index([citizenId, isActive])
+  @@index([deletedAt])
+  @@map("citizen_goals")
+}
+
+model CitizenSkill {
+  id        String    @id @default(uuid())
+  citizenId String    @map("citizen_id")
+  skillName String    @map("skill_name")
+  level     Int       @default(1)
+  experience Int      @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@unique([citizenId, skillName])
+  @@index([skillName, level])
+  @@map("citizen_skills")
+}
+
+model CitizenRelationship {
+  id          String           @id @default(uuid())
+  citizenAId  String           @map("citizen_a_id")
+  citizenBId  String           @map("citizen_b_id")
+  type        RelationshipType
+  sentiment   Float            @default(0)
+  strength    Float            @default(0.5)
+  metadata    Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+
+  citizenA Citizen @relation("RelationshipCitizenA", fields: [citizenAId], references: [id], onDelete: Cascade)
+  citizenB Citizen @relation("RelationshipCitizenB", fields: [citizenBId], references: [id], onDelete: Cascade)
+
+  @@unique([citizenAId, citizenBId, type])
+  @@index([citizenAId])
+  @@index([citizenBId])
+  @@index([deletedAt])
+  @@map("citizen_relationships")
+}
+
+model CitizenSchedule {
+  id        String           @id @default(uuid())
+  citizenId String           @map("citizen_id")
+  dayOfWeek Int?             @map("day_of_week")
+  startHour Int              @map("start_hour")
+  endHour   Int              @map("end_hour")
+  activity  ScheduleActivity
+  metadata  Json             @default("{}")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  deletedAt DateTime?        @map("deleted_at")
+
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@index([citizenId, dayOfWeek])
+  @@index([deletedAt])
+  @@map("citizen_schedules")
+}
+
+// =============================================================================
+// ECONOMY — Companies, Businesses, Jobs, Inventory, Produce
+// =============================================================================
+
+model Company {
+  id        String    @id @default(uuid())
+  worldId   String    @map("world_id")
+  name      String
+  industry  String?
+  capital   Decimal   @default(0) @db.Decimal(18, 2)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  world      World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  businesses Business[]
+  jobs       Job[]
+
+  @@unique([worldId, name])
+  @@index([worldId, deletedAt])
+  @@map("companies")
+}
+
+model Business {
+  id         String    @id @default(uuid())
+  worldId    String    @map("world_id")
+  companyId  String?   @map("company_id")
+  cityId     String    @map("city_id")
+  buildingId String?   @map("building_id")
+  name       String
+  category   String
+  revenue    Decimal   @default(0) @db.Decimal(18, 2)
+  metadata   Json      @default("{}")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  world    World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  company  Company?  @relation(fields: [companyId], references: [id])
+  city     City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  building Building? @relation("BusinessBuilding", fields: [buildingId], references: [id])
+
+  jobs       Job[]
+  inventory  BusinessInventory[]
+  produce    ProduceRecord[]
+  vehicles   Vehicle[]
+  buildings  Building[] @relation("BuildingOwnerBusiness")
+
+  @@index([worldId, cityId])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@map("businesses")
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  worldId        String    @map("world_id")
+  companyId      String?   @map("company_id")
+  businessId     String?   @map("business_id")
+  title          String
+  description    String?   @db.Text
+  requiredSkills Json      @default("{}") @map("required_skills")
+  wage           Decimal   @default(0) @db.Decimal(18, 2)
+  slots          Int       @default(1)
+  status         JobStatus @default(OPEN)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  world       World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  company     Company?        @relation(fields: [companyId], references: [id])
+  business    Business?       @relation(fields: [businessId], references: [id])
+  assignments JobAssignment[]
+
+  @@index([worldId, status])
+  @@index([businessId])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@map("jobs")
+}
+
+model JobAssignment {
+  id          String           @id @default(uuid())
+  jobId       String           @map("job_id")
+  citizenId   String           @map("citizen_id")
+  status      AssignmentStatus @default(ACTIVE)
+  performance Float            @default(0.5)
+  startedAt   DateTime         @default(now()) @map("started_at")
+  endedAt     DateTime?        @map("ended_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  citizen Citizen @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, status])
+  @@index([citizenId, status])
+  @@index([deletedAt])
+  @@map("job_assignments")
+}
+
+model ItemDefinition {
+  id          String    @id @default(uuid())
+  worldId     String    @map("world_id")
+  sku         String
+  name        String
+  category    String
+  basePrice   Decimal   @default(0) @map("base_price") @db.Decimal(18, 2)
+  properties  Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  world              World               @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  citizenInventory   CitizenInventory[]
+  businessInventory  BusinessInventory[]
+  produceRecords     ProduceRecord[]
+  transactions       Transaction[]
+
+  @@unique([worldId, sku])
+  @@index([worldId, category])
+  @@index([deletedAt])
+  @@map("item_definitions")
+}
+
+model CitizenInventory {
+  id               String   @id @default(uuid())
+  citizenId        String   @map("citizen_id")
+  itemDefinitionId String   @map("item_definition_id")
+  quantity         Int      @default(0)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  citizen        Citizen        @relation(fields: [citizenId], references: [id], onDelete: Cascade)
+  itemDefinition ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([citizenId, itemDefinitionId])
+  @@index([citizenId])
+  @@map("citizen_inventory")
+}
+
+model BusinessInventory {
+  id               String   @id @default(uuid())
+  businessId       String   @map("business_id")
+  itemDefinitionId String   @map("item_definition_id")
+  quantity         Int      @default(0)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  business       Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  itemDefinition ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, itemDefinitionId])
+  @@index([businessId])
+  @@map("business_inventory")
+}
+
+model ProduceRecord {
+  id               String        @id @default(uuid())
+  worldId          String        @map("world_id")
+  itemDefinitionId String        @map("item_definition_id")
+  cityId           String?       @map("city_id")
+  businessId       String?       @map("business_id")
+  tick             Int
+  quantity         Int
+  status           ProduceStatus @default(PLANNED)
+  metadata         Json          @default("{}")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  deletedAt        DateTime?     @map("deleted_at")
+
+  world          World          @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  itemDefinition ItemDefinition @relation(fields: [itemDefinitionId], references: [id], onDelete: Cascade)
+  city           City?          @relation(fields: [cityId], references: [id])
+  business       Business?      @relation(fields: [businessId], references: [id])
+
+  @@index([worldId, tick])
+  @@index([businessId, status])
+  @@index([deletedAt])
+  @@map("produce_records")
+}
+
+model EconomySnapshot {
+  id        String   @id @default(uuid())
+  worldId   String   @map("world_id")
+  tick      Int
+  macro     Json     @default("{}")
+  markets   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, tick])
+  @@index([worldId, createdAt(sort: Desc)])
+  @@map("economy_snapshots")
+}
+
+model Transaction {
+  id               String          @id @default(uuid())
+  worldId          String          @map("world_id")
+  tick             Int
+  type             TransactionType
+  sourceType       EntityType      @map("source_type")
+  sourceId         String          @map("source_id")
+  targetType       EntityType      @map("target_type")
+  targetId         String          @map("target_id")
+  itemDefinitionId String?         @map("item_definition_id")
+  amount           Decimal         @db.Decimal(18, 2)
+  currency         String          @default("gold")
+  metadata         Json            @default("{}")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  world          World           @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  itemDefinition ItemDefinition? @relation(fields: [itemDefinitionId], references: [id])
+
+  @@index([worldId, tick])
+  @@index([sourceType, sourceId])
+  @@index([targetType, targetId])
+  @@index([type, createdAt(sort: Desc)])
+  @@map("transactions")
+}
+
+// =============================================================================
+// GOVERNMENT & TAXES
+// =============================================================================
+
+model Government {
+  id        String    @id @default(uuid())
+  worldId   String    @map("world_id")
+  cityId    String?   @map("city_id")
+  name      String
+  govType   String    @map("gov_type")
+  treasury  Decimal   @default(0) @db.Decimal(18, 2)
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  world    World              @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  city     City?              @relation(fields: [cityId], references: [id])
+  policies GovernmentPolicy[]
+  taxRates TaxRate[]
+  taxRecords TaxRecord[]
+
+  @@index([worldId, cityId])
+  @@index([deletedAt])
+  @@map("governments")
+}
+
+model GovernmentPolicy {
+  id           String    @id @default(uuid())
+  governmentId String    @map("government_id")
+  name         String
+  description  String?   @db.Text
+  effectiveTick Int      @map("effective_tick")
+  expiresTick  Int?      @map("expires_tick")
+  rules        Json      @default("{}")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  government Government @relation(fields: [governmentId], references: [id], onDelete: Cascade)
+
+  @@index([governmentId, effectiveTick])
+  @@index([deletedAt])
+  @@map("government_policies")
+}
+
+model TaxRate {
+  id           String    @id @default(uuid())
+  worldId      String    @map("world_id")
+  governmentId String    @map("government_id")
+  taxType      TaxType   @map("tax_type")
+  rate         Decimal   @db.Decimal(8, 4)
+  effectiveFrom Int      @map("effective_from")
+  effectiveTo  Int?      @map("effective_to")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  world      World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  government Government @relation(fields: [governmentId], references: [id], onDelete: Cascade)
+
+  @@index([governmentId, taxType])
+  @@index([worldId, effectiveFrom])
+  @@index([deletedAt])
+  @@map("tax_rates")
+}
+
+model TaxRecord {
+  id             String     @id @default(uuid())
+  worldId        String     @map("world_id")
+  governmentId   String     @map("government_id")
+  tick           Int
+  taxType        TaxType    @map("tax_type")
+  payerType      EntityType @map("payer_type")
+  payerId        String     @map("payer_id")
+  amount         Decimal    @db.Decimal(18, 2)
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  world      World      @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  government Government @relation(fields: [governmentId], references: [id], onDelete: Cascade)
+
+  @@index([worldId, tick])
+  @@index([payerType, payerId])
+  @@index([governmentId, taxType])
+  @@map("tax_records")
+}
+
+// =============================================================================
+// CRIME
+// =============================================================================
+
+model CrimeRecord {
+  id                   String      @id @default(uuid())
+  worldId              String      @map("world_id")
+  tick                 Int
+  crimeType            CrimeType   @map("crime_type")
+  status               CrimeStatus @default(REPORTED)
+  perpetratorCitizenId String?     @map("perpetrator_citizen_id")
+  victimCitizenId      String?     @map("victim_citizen_id")
+  locationLat          Float?      @map("location_lat")
+  locationLng          Float?      @map("location_lng")
+  description          String?     @db.Text
+  metadata             Json        @default("{}")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+  deletedAt            DateTime?   @map("deleted_at")
+
+  world       World    @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  perpetrator Citizen? @relation("CrimePerpetrator", fields: [perpetratorCitizenId], references: [id])
+  victim      Citizen? @relation("CrimeVictim", fields: [victimCitizenId], references: [id])
+
+  @@index([worldId, tick])
+  @@index([status, crimeType])
+  @@index([perpetratorCitizenId])
+  @@index([victimCitizenId])
+  @@index([deletedAt])
+  @@map("crime_records")
+}
+
+// =============================================================================
+// WEATHER
+// =============================================================================
+
+model WeatherSnapshot {
+  id          String           @id @default(uuid())
+  worldId     String           @map("world_id")
+  tick        Int
+  season      String
+  temperature Float
+  condition   WeatherCondition
+  details     Json             @default("{}")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, tick])
+  @@index([worldId, condition])
+  @@map("weather_snapshots")
+}
+
+model WeatherEvent {
+  id        String           @id @default(uuid())
+  worldId   String           @map("world_id")
+  tick      Int
+  eventType WeatherCondition @map("event_type")
+  severity  Float            @default(0.5)
+  impact    Json             @default("{}")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@index([worldId, tick])
+  @@index([eventType, severity])
+  @@map("weather_events")
+}
+
+// =============================================================================
+// EVENTS (World + Event Sourcing)
+// =============================================================================
+
+model WorldEvent {
+  id              String         @id @default(uuid())
+  worldId         String         @map("world_id")
+  tick            Int
+  eventType       WorldEventType @map("event_type")
+  title           String
+  payload         Json           @default("{}")
+  injectedByUserId String?       @map("injected_by_user_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  world        World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  injectedBy   User? @relation("EventInjector", fields: [injectedByUserId], references: [id])
+
+  @@index([worldId, tick])
+  @@index([eventType, createdAt(sort: Desc)])
+  @@map("world_events")
+}
+
+model SimulationEvent {
+  id            String   @id @default(uuid())
+  worldId       String   @map("world_id")
+  tick          Int
+  aggregateType String   @map("aggregate_type")
+  aggregateId   String   @map("aggregate_id")
+  eventType     String   @map("event_type")
+  payload       Json     @default("{}")
+  sequence      BigInt   @default(autoincrement())
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, sequence])
+  @@index([worldId, tick])
+  @@index([aggregateType, aggregateId, tick])
+  @@map("simulation_events")
+}
+
+// =============================================================================
+// AI — Memory & Knowledge
+// =============================================================================
+
+model AgentMemory {
+  id            String     @id @default(uuid())
+  agentId       String     @map("agent_id")
+  memoryType    MemoryType @map("memory_type")
+  content       String     @db.Text
+  embeddingId   String?    @map("embedding_id")
+  importance    Float      @default(0.5)
+  occurredAtTick Int?      @map("occurred_at_tick")
+  metadata      Json       @default("{}")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  deletedAt     DateTime?  @map("deleted_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, memoryType])
+  @@index([agentId, importance(sort: Desc)])
+  @@index([embeddingId])
+  @@index([deletedAt])
+  @@map("agent_memories")
+}
+
+model KnowledgeEntry {
+  id             String          @id @default(uuid())
+  organizationId String          @map("organization_id")
+  title          String
+  content        String          @db.Text
+  source         KnowledgeSource @default(CURATED)
+  embeddingId    String?         @map("embedding_id")
+  metadata       Json            @default("{}")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, source])
+  @@index([embeddingId])
+  @@index([deletedAt])
+  @@map("knowledge_entries")
 }

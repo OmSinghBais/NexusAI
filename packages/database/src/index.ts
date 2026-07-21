@@ -13,4 +13,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export { PrismaClient };
-export type { SystemMeta } from '@prisma/client';
+export * from '@prisma/client';
