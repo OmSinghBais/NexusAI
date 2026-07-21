@@ -1,9 +1,31 @@
-# AI Operating System for Businesses (AIOS)
-### Project Requirements Document (PRD)
+# NexusAI Platform — Requirements Document (PRD)
 
-**Version:** 1.0  
-**Project Type:** Final Year Major Project  
-**Architecture:** SaaS Platform for Multi-Agent AI Systems
+**Version:** 2.0  
+**Project Type:** Final Year Major Project + Commercial SaaS/Game Platform  
+**Architecture:** Dual-Product Platform on Shared Multi-Agent Core
+
+---
+
+# Platform Overview
+
+NexusAI is a dual-product platform built on a shared agent runtime, memory engine, and orchestration layer.
+
+| Product | Name | Purpose |
+|---------|------|---------|
+| **Product A** | AIOS (AI Operating System) | Enterprise SaaS for creating and managing AI business employees |
+| **Product B** | AI Civilization Simulator | Living world where autonomous AI citizens evolve without player control |
+
+Both products share authentication, agent runtime, memory, model routing, event bus, and database infrastructure. Product-specific logic lives in isolated modules.
+
+**Documentation conflict resolution priority:**
+
+```
+requirements.md → architecture.md → decisions.md → memory.md → lessons.md
+```
+
+---
+
+# Product A: AIOS Business SaaS
 
 ---
 
@@ -755,3 +777,174 @@ aios/
 5. After approval, the Finance Agent initiates the refund.
 6. The Customer Support Agent sends a confirmation email.
 7. The Audit Log records every action, and the Analytics Dashboard updates the workflow metrics.
+
+---
+
+# Product B: AI Civilization Simulator
+
+---
+
+# B1. Project Overview
+
+The AI Civilization Simulator is a persistent, autonomous world simulation where every citizen is a fully autonomous AI agent. The world continues evolving without player interaction. The player acts as an **observer or administrator** — never controlling characters directly.
+
+**Commercial trajectory:** Designed to evolve into a commercial SaaS/game platform.
+
+---
+
+# B2. Problem Statement
+
+Existing simulation and game platforms lack:
+
+- Truly autonomous AI citizens with persistent memory and personality
+- Worlds that evolve meaningfully without player input
+- Deep inter-citizen relationships, economy, and social dynamics driven by LLM reasoning
+- A production-grade architecture suitable for SaaS deployment at scale
+
+---
+
+# B3. Core Citizen Model
+
+Every citizen is an autonomous AI agent with the following attributes:
+
+| Attribute | Description |
+|-----------|-------------|
+| **Personality** | OCEAN Big Five traits, cognitive biases, behavioral tendencies |
+| **Memory** | Short-term (current context) + long-term (vector-indexed life events) |
+| **Goals** | Personal ambitions, survival needs, social aspirations |
+| **Skills** | Profession, crafting, combat, social, education levels |
+| **Relationships** | Family, friends, rivals, romantic partners, faction ties |
+| **Inventory** | Items, tools, resources owned by the citizen |
+| **Job** | Current employment, role, employer, performance |
+| **Wealth** | Currency, assets, debts |
+| **Health** | Physical and mental health, injuries, illness |
+| **Daily Schedule** | Sleep, work, eat, socialize, leisure blocks |
+| **Decision Making** | Autonomous action selection each simulation tick |
+
+---
+
+# B4. Functional Requirements
+
+## B4.1 World Engine
+
+- Procedurally generate worlds from a deterministic seed
+- Define terrain, settlements, resources, and starting population
+- Support configurable world size, era, and difficulty
+- World state persists across sessions
+
+## B4.2 Simulation Clock
+
+- Discrete-event tick system (configurable: 1 tick = 1 in-game hour/day)
+- World advances autonomously when no player is connected
+- Background worker processes citizen decision loops
+- Pause, fast-forward, and step controls for observer/admin
+
+## B4.3 Citizen Lifecycle
+
+- Birth, aging, death
+- Education progression
+- Career development and job changes
+- Relationship formation and dissolution
+- Health degradation and recovery
+- Goal pursuit and goal abandonment
+
+## B4.4 Autonomous Decision Loop
+
+Each active citizen, per tick:
+
+1. Evaluate current needs (hunger, fatigue, social, wealth, health)
+2. Retrieve relevant memories
+3. Assess environment (location, nearby citizens, available actions)
+4. Generate candidate actions via LLM or rule engine
+5. Select and execute highest-priority action
+6. Update memory, relationships, inventory, and world state
+7. Emit events to the event bus
+
+## B4.5 Economy
+
+- Supply and demand for goods and services
+- Citizen-to-citizen and citizen-to-business transactions
+- Employment wages, business revenue, taxation
+- Inflation, scarcity, and market events
+- Personal and business ledgers per citizen
+
+## B4.6 Social Systems
+
+- Relationship graph (family, friends, enemies, colleagues)
+- Factions and groups with shared goals
+- Dialogue between citizens (LLM-generated, personality-aware)
+- Sentiment tracking toward other citizens, factions, and events
+- Collective action (protests, celebrations, migrations)
+
+## B4.7 World Systems
+
+- Weather and environmental events
+- Transportation between locations
+- Healthcare (injury, illness, treatment)
+- Crime and law enforcement
+- Government and policy
+- Crafting and resource production
+- Combat (optional, configurable per world)
+
+## B4.8 Observer / Admin Interface
+
+- View world map and citizen locations
+- Inspect any citizen's full state (personality, memory, goals, inventory)
+- Read citizen decision logs and dialogue history
+- Inject world events (disasters, policy changes, resource booms)
+- Pause, resume, and speed-control simulation
+- No direct character control
+
+## B4.9 Save System
+
+- Full world state snapshots at configurable intervals
+- Event-sourced state reconstruction from genesis seed
+- Deterministic replay for debugging
+- World branching for scenario comparison
+
+## B4.10 Tiered AI Usage
+
+- **Active citizens** (near player view, in interaction): full LLM reasoning
+- **Background citizens** (distant, low activity): rule-based or lightweight model
+- Automatic promotion/demotion between tiers based on relevance
+
+---
+
+# B5. Non-Functional Requirements
+
+| Requirement | Target |
+|-------------|--------|
+| World persistence | 99.9% save integrity |
+| Simulation throughput | 100+ citizens at 1 tick/second (MVP) |
+| Scalability path | 10,000+ citizens via tiered AI and worker scaling |
+| Determinism | Same seed + same actions = same outcome |
+| Observability | Full audit trail of every citizen decision |
+| Multi-tenancy | Each player/org owns isolated world instances |
+
+---
+
+# B6. Shared Core Dependencies (Product B uses Product A infrastructure)
+
+| Shared Component | Used By Product B For |
+|-----------------|----------------------|
+| Agent Runtime | Citizen entity execution |
+| Memory Engine | Citizen short/long-term memory |
+| Model Router | LLM calls for active citizens |
+| Event Bus | World tick events, citizen actions |
+| Auth / RBAC | Player accounts, world admin permissions |
+| PostgreSQL | World state, citizen records |
+| Redis | Active citizen cache, simulation state |
+| BullMQ | Background tick workers |
+
+---
+
+# B7. Success Criteria (Product B)
+
+- [ ] World generates from seed and persists across restarts
+- [ ] Citizens autonomously complete daily schedules without player input
+- [ ] Citizens form and maintain relationships over time
+- [ ] Economy functions with supply, demand, and employment
+- [ ] Player can observe any citizen and inspect their state
+- [ ] Player can inject world events as administrator
+- [ ] Save/load restores full world state deterministically
+- [ ] 100+ citizens run concurrently with tiered AI

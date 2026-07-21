@@ -219,7 +219,39 @@ Benefits
 
 ---
 
-# Best Practices
+## LESSON-0006
+
+Title
+
+Dual-Product Architecture — Shared Core Pattern
+
+Category
+
+Architecture
+
+Date
+
+2026-07-21
+
+Problem
+
+Two distinct products (business SaaS + civilization simulator) required the same agent, memory, and orchestration infrastructure. Building separately would duplicate 60%+ of code.
+
+Solution
+
+Shared core platform with product-specific modules. Citizens are agents. Simulation uses the same memory engine and model router as business agents.
+
+Benefits
+
+- Single codebase and deployment pipeline
+- Agent runtime improvements benefit both products
+- Simulation can serve as AIOS testing sandbox
+
+Applies To
+
+All modules. See ADR-0011.
+
+---
 
 ## Backend
 

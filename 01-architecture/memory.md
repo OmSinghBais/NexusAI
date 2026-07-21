@@ -1,4 +1,4 @@
-# AIOS - Development Memory
+# NexusAI Platform — Development Memory
 
 > **Purpose**
 >
@@ -17,44 +17,47 @@
 Project Name
 
 ```
-AIOS
-AI Operating System for Businesses
+NexusAI Platform
+├── Product A: AIOS (AI Operating System for Businesses)
+└── Product B: AI Civilization Simulator
 ```
 
 Version
 
 ```
-v0.1.0
+v0.2.0
 ```
 
 Status
 
 ```
-Planning
+Documentation — Dual-Product Architecture Defined
 ```
 
 Current Phase
 
 ```
-Phase 1 — Foundation
+Track Shared — Foundation (Planning)
+Next: Phase B1 — World Engine
 ```
 
 Repository
 
 ```
-TBD
+https://github.com/OmSinghBais/NexusAI
+Local: /Users/omsinghbais/Desktop/Ai-OS
 ```
 
 Started On
 
 ```
-YYYY-MM-DD
+2026-07-21
 ```
 
 Last Updated
 
 ```
-YYYY-MM-DD HH:MM
+2026-07-21 11:45
 ```
 
 ---
@@ -68,56 +71,57 @@ Sprint 1
 Sprint Goal
 
 ```
-Project Planning & Foundation Setup
+Dual-Product Documentation Alignment
 ```
 
 Sprint Status
 
 ```
-In Progress
+Completed
 ```
 
 ---
 
 # Current Working File
 
-> **ONLY ONE FILE SHOULD BE MARKED AS CURRENTLY BEING WORKED ON**
-
 ```
-docs/memory.md
+01-architecture/memory.md
 ```
 
 Current Task
 
 ```
-Creating project documentation.
+Documentation complete. Ready for Shared Foundation implementation.
 ```
 
 Current Developer
 
 ```
-AI Assistant
+AI Assistant (Lead Architect)
 ```
 
 Progress
 
 ```
-15%
+25%
 ```
 
 ---
 
 # Current TODO
 
-- [ ] Finish documentation
-- [ ] Create README
-- [ ] Create database.md
+- [x] Align requirements.md for dual-product vision
+- [x] Update architecture.md with shared core + Product B design
+- [x] Restructure phases.md with Track A / Track B / Shared
+- [x] Add ADRs 0011–0014 (dual-product, citizen-as-agent, tiered AI, sim clock)
+- [x] Reframe 05-simulation/ specs for civilization product
+- [ ] Create README.md
+- [ ] Create database.md (shared + product schemas)
 - [ ] Create api.md
-- [ ] Create workflow.md
-- [ ] Initialize repository
 - [ ] Setup monorepo
-- [ ] Configure Docker
+- [ ] Configure Docker Compose
 - [ ] Configure CI/CD
+- [ ] Phase B1: World Engine implementation
 
 ---
 
@@ -130,7 +134,12 @@ Progress
 | rules.md | ✅ Completed | YYYY-MM-DD |
 | phases.md | ✅ Completed | YYYY-MM-DD |
 | design.md | ✅ Completed | YYYY-MM-DD |
-| memory.md | 🚧 In Progress | YYYY-MM-DD |
+| memory.md | ✅ Completed | 2026-07-21 |
+| requirements.md (v2.0 dual-product) | ✅ Completed | 2026-07-21 |
+| architecture.md (v2.0 dual-product) | ✅ Completed | 2026-07-21 |
+| phases.md (Track A/B/Shared) | ✅ Completed | 2026-07-21 |
+| decisions.md (ADR-0011–0014) | ✅ Completed | 2026-07-21 |
+| 05-simulation/ (reframed) | ✅ Completed | 2026-07-21 |
 
 ---
 
@@ -144,11 +153,12 @@ Progress
 | design.md | ✅ |
 | rules.md | ✅ |
 | phases.md | ✅ |
-| memory.md | 🚧 |
+| memory.md | ✅ |
 | database.md | ⏳ |
 | api.md | ⏳ |
 | deployment.md | ⏳ |
 | workflows.md | ⏳ |
+| 05-simulation/README.md | ✅ |
 
 ---
 
@@ -199,19 +209,32 @@ Progress
 # Current Folder Structure
 
 ```
-docs/
-
-├── architecture.md
-├── design.md
-├── memory.md
-├── phases.md
-├── requirements.md
-└── rules.md
+Ai-OS/  (NexusAI repo)
+├── 00-core/          requirements, rules, phases, roadmap
+├── 01-architecture/  architecture, decisions, memory, lessons
+├── 02-backend/       API, services, events, auth
+├── 03-database/      schema, migrations, ER diagram
+├── 04-ai/            AI engine, memory, orchestration
+├── 05-simulation/    Product B: civilization sim specs
+├── 06-frontend/      UI specs (both products)
+├── 07-devops/        Docker, deployment, monitoring
+└── 08-testing/       test strategy
 ```
 
 ---
 
 # Recently Completed
+
+### 2026-07-21
+
+- Cloned NexusAI repository into Ai-OS workspace
+- Established dual-product architecture (AIOS + Civilization Simulator)
+- Updated requirements.md v2.0 with Product B specification
+- Updated architecture.md v2.0 with shared core and simulation design
+- Restructured phases.md with Track Shared / Track A / Track B
+- Added ADR-0011 through ADR-0014
+- Reframed 05-simulation/ specs for civilization product
+- Updated memory.md to v0.2.0
 
 ### YYYY-MM-DD
 
@@ -239,19 +262,29 @@ None
 
 ## Architecture
 
-✅ Modular Monolith
+✅ Dual-Product on Shared Core (ADR-0011)
+
+✅ Modular Monolith (ADR-0001)
 
 Reason
 
 ```
-Easy to develop
+Single codebase serves AIOS + Civilization Simulator
 
-Easy to scale later
+Shared agent runtime, memory, orchestration
 
-Enterprise architecture
-
-Suitable for Final Year Project
+Product-specific logic in isolated modules
 ```
+
+---
+
+## Product B
+
+✅ Citizen-as-Agent (ADR-0012)
+
+✅ Tiered AI Usage (ADR-0013)
+
+✅ Discrete-Event Simulation Clock (ADR-0014)
 
 ---
 
@@ -339,25 +372,27 @@ LangGraph
 
 Priority 1
 
-- README
-- Database Design
-- API Documentation
+- database.md (shared + Product B schemas)
+- Monorepo setup
+- Docker Compose
 
 Priority 2
 
-- Monorepo Setup
-- Docker
-- Authentication
+- Phase B1: World Engine
+- Phase B2: Citizen Core Loop (vertical slice)
 
 Priority 3
 
-- Dashboard
-- Organizations
-- AI Employees
+- Product A Track: Authentication, Organizations
+- Observer UI (Phase B5)
 
 ---
 
 # Changelog
+
+## v0.2.0 — 2026-07-21
+
+Dual-product architecture defined. Product B (Civilization Simulator) added alongside Product A (AIOS). ADRs 0011–0014 accepted. Documentation realigned.
 
 ## v0.1.0
 
@@ -367,26 +402,27 @@ Planning Started
 
 # Daily Log
 
-## YYYY-MM-DD
+## 2026-07-21
 
 Worked On
 
 ```
-Project Documentation
+Dual-product documentation alignment
 ```
 
 Completed
 
-- requirements.md
-- architecture.md
-- rules.md
-- phases.md
-- design.md
+- requirements.md v2.0 (Product B added)
+- architecture.md v2.0 (shared core + simulation design)
+- phases.md (Track Shared / A / B)
+- decisions.md (ADR-0011–0014)
+- 05-simulation/ reframed for civilization product
+- Repository cloned from GitHub
 
 Next
 
 ```
-database.md
+database.md → monorepo setup → Phase B1 World Engine
 ```
 
 ---
@@ -395,11 +431,12 @@ database.md
 
 When another AI opens this repository, it should know:
 
-- The project is currently in the **Planning Phase**.
-- The architecture has been finalized.
-- The design system has been finalized.
-- Coding has **not** started yet.
-- Documentation should be completed before implementation begins.
+- The project is a **dual-product platform**: AIOS (business SaaS) + AI Civilization Simulator.
+- Architecture v2.0 is finalized with shared core (ADR-0011).
+- Product B citizens are agents with extended state (ADR-0012).
+- Build order: Shared Foundation → Phase B1/B2 (world + citizen loop) → Product A track.
+- Coding has **not** started yet — documentation phase complete, implementation next.
+- Read `00-core/requirements.md` (Product B section), `01-architecture/architecture.md`, and `01-architecture/decisions.md` before writing any code.
 
 ---
 

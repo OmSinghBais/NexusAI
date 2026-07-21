@@ -1,12 +1,137 @@
-# AIOS - Development Phases
+# NexusAI Platform — Development Phases
 
-> **Project:** AI Operating System for Businesses (AIOS)
+> **Project:** Dual-Product Platform (AIOS + AI Civilization Simulator)
 >
 > This document defines the complete development roadmap from MVP to Enterprise Edition.
 >
-> **Current Target:** Phase 1 → Phase 5 (Final Year Project)
+> **Current Target:** Shared Foundation → Product B Vertical Slice → Product A Track
 >
 > **Future:** Phase 6+ (Startup Ready)
+
+---
+
+# Dual-Product Phase Strategy
+
+```text
+Track Shared (Foundation)
+        │
+        ├── Track A: AIOS Business SaaS
+        │       Phase A1 → A2 → A3 → A4 → A5
+        │
+        └── Track B: Civilization Simulator
+                Phase B1 → B2 → B3 → B4 → B5
+```
+
+**Build order:** Shared Foundation first, then Product B vertical slice (citizen loop), then Product A track in parallel.
+
+---
+
+# Track Shared — Foundation (Both Products)
+
+**Goal:** Shared core infrastructure both products depend on.
+
+## Deliverables
+
+- Monorepo setup (Turborepo or Nx)
+- PostgreSQL schema (shared + product-scoped tables)
+- Authentication & RBAC
+- Agent Runtime skeleton
+- Memory Engine skeleton
+- Model Router (OpenAI + Ollama for dev)
+- Event Bus (RabbitMQ)
+- Redis cache
+- BullMQ worker setup
+- Docker Compose (local dev)
+- CI/CD pipeline (GitHub Actions)
+
+---
+
+# Track B — Civilization Simulator Phases
+
+---
+
+## Phase B1 — World Engine
+
+**Goal:** Generate and persist a living world.
+
+- Procedural world generation from seed
+- World entity model (terrain, settlements, resources)
+- Simulation clock (discrete tick system)
+- World state persistence (PostgreSQL + Redis)
+- Basic observer API (read world state)
+
+**Deliverables:** ✅ World generates, ticks advance, state persists
+
+---
+
+## Phase B2 — Citizen Core Loop
+
+**Goal:** One fully autonomous citizen.
+
+- Citizen entity (extends agent model)
+- Personality generation (OCEAN traits)
+- Short-term and long-term memory
+- Daily schedule system
+- Needs evaluation (hunger, fatigue, social, health)
+- Autonomous decision loop (LLM-powered)
+- Action execution and state update
+
+**Deliverables:** ✅ One citizen lives autonomously for 30+ in-game days
+
+---
+
+## Phase B3 — Social & Economy
+
+**Goal:** Multiple citizens interacting in a functioning society.
+
+- Multi-citizen world (10–100 citizens)
+- Relationship graph
+- Dialogue system (personality-aware LLM)
+- Job assignment and wages
+- Inventory and transactions
+- Supply/demand economy
+- Tiered AI (active vs background citizens)
+
+**Deliverables:** ✅ 50+ citizens with relationships, jobs, and economy
+
+---
+
+## Phase B4 — World Systems
+
+**Goal:** Rich emergent world behavior.
+
+- Weather and environmental events
+- Healthcare system
+- Education progression
+- Factions and government
+- Crime and law
+- Crafting and businesses
+- Transportation
+- Admin event injection
+
+**Deliverables:** ✅ Emergent social and economic behavior observable by player
+
+---
+
+## Phase B5 — Observer UI & SaaS Shell
+
+**Goal:** Playable observer experience and commercial foundation.
+
+- World map view
+- Citizen inspector panel
+- Event timeline
+- Admin controls (pause, speed, inject events)
+- World save/load UI
+- Player accounts and world ownership
+- Multi-tenant world isolation
+
+**Deliverables:** ✅ Demo-ready observer experience, SaaS-ready architecture
+
+---
+
+# Track A — AIOS Business SaaS Phases
+
+*(Existing phases below — unchanged in scope, deferred until Shared Foundation + Phase B2 complete)*
 
 ---
 

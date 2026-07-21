@@ -1,7 +1,57 @@
-# AIOS - AI Operating System for Businesses
-## Architecture Document
+# NexusAI Platform — Architecture Document
 
-Version: 1.0
+Version: 2.0
+
+---
+
+# Platform Overview
+
+NexusAI is a **dual-product platform** on a shared multi-agent core:
+
+| Product | Module Prefix | Description |
+|---------|--------------|-------------|
+| **Product A: AIOS** | `services/aios/` | Enterprise SaaS for AI business employees |
+| **Product B: Civilization Sim** | `services/simulation/` | Autonomous living world with AI citizens |
+| **Shared Core** | `packages/`, `services/core/` | Agent runtime, memory, orchestration, auth |
+
+---
+
+# Dual-Product Architecture
+
+```text
+                         Players / Business Users
+                                    │
+                    ┌───────────────┴───────────────┐
+                    │                               │
+            AIOS Dashboard                  Observer / Admin UI
+            (Product A)                     (Product B)
+                    │                               │
+                    └───────────────┬───────────────┘
+                                    │
+                          API Gateway (NestJS)
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+        Auth Service         Organization Service    World Service
+        (Shared)             (Product A)             (Product B)
+              │                     │                     │
+              └──────────┬──────────┴──────────┬──────────┘
+                         │                     │
+                  AI Orchestrator        Simulation Engine
+                  (Shared)               (Product B)
+                         │                     │
+         ┌───────────────┼───────────┐         │
+         │               │           │         │
+   Memory Engine   Tool Executor  Agent    Citizen Loop
+   (Shared)        (Shared)       Runtime  (Product B)
+         │               │        (Shared)     │
+         │               │           │    World Tick Worker
+    Vector DB        External     Event Bus  (BullMQ)
+    (Qdrant)           APIs      (RabbitMQ)
+                         │
+                LLM Provider Router
+         GPT • Gemini • Claude • Ollama
+```
 
 ---
 
@@ -867,3 +917,139 @@ Production
 - Kubernetes Deployment
 - Billing & Usage Tracking
 - Agent Marketplace Publishing
+
+---
+
+# Product B: Civilization Simulator Architecture
+
+---
+
+## Citizen-as-Agent Model
+
+Every citizen **is** an agent with extended domain state. The shared agent runtime provides identity, memory, and LLM access. The simulation module adds citizen-specific state.
+
+```text
+Agent (Shared Core)
+├── id, name, model, status
+├── memory (short-term + long-term)
+└── permissions
+
+Citizen (Product B Extension)
+├── personality (OCEAN traits)
+├── goals[]
+├── skills{}
+├── relationships[]
+├── inventory[]
+├── job
+├── wealth
+├── health
+├── schedule
+└── location
+```
+
+---
+
+## Simulation Loop Architecture
+
+```text
+Simulation Clock (BullMQ Worker)
+        │
+        ▼
+For each active tick:
+        │
+        ├── World Engine: advance time, apply weather/events
+        ├── Economy Engine: update prices, process transactions
+        ├── Citizen Loop (per citizen):
+        │       ├── Evaluate needs
+        │       ├── Retrieve memory
+        │       ├── Tier check (active vs background)
+        │       ├── Decision (LLM or rule engine)
+        │       ├── Execute action
+        │       └── Emit events
+        └── Save System: snapshot if interval reached
+```
+
+---
+
+## Tiered AI Architecture
+
+```text
+Citizen Relevance Score
+        │
+        ├── High (near observer, in interaction) → Full LLM (GPT-4/Claude)
+        ├── Medium (same settlement)             → Lightweight LLM (Haiku/Gemini Flash)
+        └── Low (distant, background)            → Rule-based state machine
+```
+
+Promotion/demotion between tiers happens each tick based on proximity to observer camera and recent interaction events.
+
+---
+
+## World State Architecture
+
+```text
+PostgreSQL
+├── worlds (id, seed, config, owner_id, status)
+├── citizens (extends agents table)
+├── relationships
+├── inventories
+├── jobs
+├── transactions
+├── world_events
+└── snapshots
+
+Redis
+├── active_world_state (hot cache)
+├── citizen_tier_cache
+└── tick_lock
+
+Event Store (append-only)
+└── world_events_log (event sourcing for replay)
+```
+
+---
+
+## Observer Interface Architecture
+
+```text
+Observer UI (Next.js)
+        │
+        ├── World Map View (citizen positions, settlements)
+        ├── Citizen Inspector (full state panel)
+        ├── Event Timeline (world history)
+        ├── Admin Controls (inject events, pause/resume/speed)
+        └── Decision Log Viewer (per-citizen audit trail)
+```
+
+Player has **read + admin** permissions only. No character control endpoints exist.
+
+---
+
+## Product B Folder Structure
+
+```
+services/simulation/
+├── world-engine/
+│   ├── controllers/
+│   ├── services/
+│   ├── repositories/
+│   └── dto/
+├── citizen-system/
+│   ├── controllers/
+│   ├── services/
+│   ├── repositories/
+│   └── dto/
+├── economy-engine/
+├── simulation-clock/
+├── save-system/
+└── observer-api/
+
+apps/sim-ui/
+├── app/
+├── components/
+│   ├── WorldMap/
+│   ├── CitizenInspector/
+│   ├── EventTimeline/
+│   └── AdminControls/
+└── hooks/
+```
