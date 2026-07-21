@@ -1,0 +1,25 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/config/package.json ./packages/config/
+COPY packages/logger/package.json ./packages/logger/
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY services/auth-service/package.json ./services/auth-service/
+RUN pnpm install --frozen-lockfile || pnpm install
+
+FROM deps AS builder
+COPY . .
+RUN pnpm turbo run build --filter=@nexusai/api...
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/apps/api/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/package.json ./package.json
+EXPOSE 3001
+CMD ["node", "dist/main.js"]
